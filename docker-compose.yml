@@ -1,0 +1,68 @@
+# Two compose profiles:
+#
+#   default        — phip-server + SQLite + filesystem blobs (one container).
+#                    `docker compose up` works out of the box.
+#   profile: pg    — adds Postgres and points phip-server at it.
+#                    `docker compose --profile pg up`
+#
+# The default is the right shape for "run it on a NUC at home"; pg is
+# what you want when scaling past one user or wanting concurrent writes.
+
+services:
+  server:
+    build:
+      context: .
+      args:
+        PHIP_PY_REF: main
+    image: phip-server:dev
+    container_name: phip-server
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      PHIP_AUTHORITY: ${PHIP_AUTHORITY:-localhost}
+      PHIP_WRITE_TOKEN: ${PHIP_WRITE_TOKEN:-}
+    volumes:
+      - phip-data:/data
+
+  server-pg:
+    build:
+      context: .
+      args:
+        PHIP_PY_REF: main
+    image: phip-server:dev
+    container_name: phip-server-pg
+    restart: unless-stopped
+    profiles: ["pg"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      PHIP_AUTHORITY: ${PHIP_AUTHORITY:-localhost}
+      PHIP_WRITE_TOKEN: ${PHIP_WRITE_TOKEN:-}
+      PHIP_DATABASE_URL: postgresql+asyncpg://phip:phip@postgres:5432/phip
+    volumes:
+      - phip-data:/data
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: phip-postgres
+    restart: unless-stopped
+    profiles: ["pg"]
+    environment:
+      POSTGRES_USER: phip
+      POSTGRES_PASSWORD: phip
+      POSTGRES_DB: phip
+    volumes:
+      - phip-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U phip -d phip"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  phip-data:
+  phip-pgdata:
