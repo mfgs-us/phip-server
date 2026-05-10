@@ -29,6 +29,11 @@ COPY --from=build /usr/local/lib/python3.13/site-packages /usr/local/lib/python3
 COPY --from=build /usr/local/bin/phip-server /usr/local/bin/phip-server
 COPY --from=build /usr/local/bin/uvicorn /usr/local/bin/uvicorn
 
+# Pre-create /data with app ownership so the VOLUME inherits it.
+# Without this, Docker creates /data as root and the non-root user
+# can't write blobs / sqlite.
+RUN mkdir -p /data && chown -R app:app /data
+
 USER app
 EXPOSE 8080
 
