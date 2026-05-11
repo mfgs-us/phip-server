@@ -15,6 +15,10 @@ has one source of truth.
 > unstable until `0.1` → `1.0`. Single-process, single-host. Designed
 > for self-hosting on a NUC, homelab box, or small VPS.
 
+> **Tutorial:** [TUTORIAL.md](./TUTORIAL.md) covers running locally,
+> Postgres + write-token deployment, TLS front-ends, S3 blob backend,
+> backups, and what the server enforces on every push.
+
 ## Quick start
 
 ```bash
